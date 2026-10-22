@@ -41,9 +41,11 @@ import {
 
 export interface CollaborativeEditorProps {
     projectId: string;
-    file: ProjectFile | null;
-    userRole: CollaboratorRole;
-    currentUser: User;
+    file?: ProjectFile | null;
+    activeFile?: ProjectFile | null;
+    userRole?: CollaboratorRole;
+    callerRole?: CollaboratorRole;
+    currentUser?: User | null;
     isProjectLocked?: boolean;
     socket: Socket | null;
     collaborators?: CollaboratorPresence[];
@@ -52,6 +54,9 @@ export interface CollaborativeEditorProps {
     burstTriggerCount?: number;
     onRegisterBurstHandler?: (triggerBurst: () => void) => void;
     onContentChange?: (fileId: string, newContent: string) => void;
+    onCodeChange?: (code: string) => void;
+    onCursorChange?: (pos: { lineNumber: number; column: number }) => void;
+    onYDocReady?: (ydoc: Y.Doc) => void;
     onCrdtTelemetryChange?: (telemetry: {
         crdtOpsCountDelta: number;
         yjsByteSize: number;
@@ -239,7 +244,7 @@ function normalizeIncomingBinary(raw: unknown): Uint8Array | null {
             Array.isArray((raw as { data?: unknown[] }).data)
         ) {
             return Uint8Array.from(
-                ((raw as { data: unknown[] }).data).map((b) =>
+                ((raw as unknown as { data: unknown[] }).data).map((b) =>
                     typeof b === 'number' ? b & 0xff : 0
                 )
             );
@@ -313,9 +318,11 @@ function mapLanguageToMonaco(language?: SupportedLanguage): string {
 
 export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     projectId,
-    file,
-    userRole,
-    currentUser,
+    file: fileProp,
+    activeFile,
+    userRole: userRoleProp,
+    callerRole,
+    currentUser: currentUserProp,
     isProjectLocked = false,
     socket,
     collaborators = [],
@@ -324,6 +331,9 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     burstTriggerCount = 0,
     onRegisterBurstHandler,
     onContentChange,
+    onCodeChange,
+    onCursorChange,
+    onYDocReady,
     onCrdtTelemetryChange,
     onThreatCountChange,
     onBreakpointsChange,
@@ -332,6 +342,16 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     onOpenVersionHistory,
     onOpenCollabDrawer,
 }) => {
+        const file = fileProp ?? activeFile ?? null;
+    const userRole: CollaboratorRole = userRoleProp ?? callerRole ?? 'EDITOR';
+    const currentUser: User = currentUserProp ?? {
+        id: 'usr-anonymous',
+        username: 'anonymous',
+        displayName: 'Anonymous',
+        avatarColor: '#38bdf8',
+        createdAt: new Date().toISOString(),
+        lastSeenAt: new Date().toISOString(),
+    };
     const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<typeof Monaco | null>(null);
     const ydocRef = useRef<Y.Doc | null>(null);
@@ -950,6 +970,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
 
             if (activeFileRef.current && onContentChange) {
                 onContentChange(activeFileRef.current.id, expectedFullText);
+                if (onCodeChange) { onCodeChange(expectedFullText); }
             }
             scheduleDebouncedThreatScan(expectedFullText);
         },
@@ -1009,6 +1030,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
         const ytext = ydoc.getText('monaco');
         ydocRef.current = ydoc;
         ytextRef.current = ytext;
+        if (onYDocReady) { onYDocReady(ydoc); }
 
         // Seed initial content locally with 'bootstrap' origin before server state arrives
         if (file.content) {
@@ -1972,6 +1994,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
 
                     if (onContentChange) {
                         onContentChange(currentFile.id, fullText);
+                    if (onCodeChange) { onCodeChange(fullText); }
                     }
                     scheduleDebouncedThreatScan(fullText);
                 }
@@ -1984,6 +2007,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
                 setActiveLineNumber(line);
                 setActiveColumn(col);
                 broadcastCursorPosition(line, col);
+                if (onCursorChange) { onCursorChange({ lineNumber: line, column: col }); }
             });
 
             // 3. Gutter Glyph Margin Click -> Shared Breakpoint or Line Comment Action

@@ -158,10 +158,14 @@ router.post(
             blocked: false,
         });
 
+        const effectiveRole = getUserRoleInProject(DEMO_PROJECT_ID, user.id) || requestedDemoRole || 'OWNER';
         res.status(200).json({
             token,
             user,
+            preferredRole: effectiveRole,
+            role: effectiveRole,
             demoProjectId: DEMO_PROJECT_ID,
+            issuedAt: now,
         });
     }
 );

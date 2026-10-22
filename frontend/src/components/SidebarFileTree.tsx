@@ -412,7 +412,7 @@ export const SidebarFileTree: React.FC<SidebarFileTreeProps> = ({
                                 {isWriteLocked ? (
                                     <Lock
                                         className="w-3 h-3 text-slate-600"
-                                        title="Locked (Read-Only Role)"
+                                        
                                     />
                                 ) : (
                                     <div className="hidden group-hover:flex items-center gap-1">

@@ -167,7 +167,7 @@ function normalizeBinaryUpdate(rawUpdate: unknown): Uint8Array | null {
             (rawUpdate as { type?: string }).type === 'Buffer' &&
             Array.isArray((rawUpdate as { data?: unknown[] }).data)
         ) {
-            const buf = Buffer.from((rawUpdate as { data: number[] }).data);
+            const buf = Buffer.from((rawUpdate as unknown as { data: number[] }).data);
             return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
         }
         return null;

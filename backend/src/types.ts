@@ -1,4 +1,4 @@
-import type { Request } from 'express';
+import { Request } from 'express';
 
 export type CollaboratorRole = 'OWNER' | 'EDITOR' | 'VIEWER';
 
@@ -30,12 +30,23 @@ export interface User {
     lastSeenAt: string;
 }
 
-export interface PersonaSession {
-    token: string;
-    user: User;
-    preferredRole: CollaboratorRole;
-    demoProjectId: string;
-    issuedAt: string;
+export interface JwtPayload {
+    userId: string;
+    username: string;
+    displayName: string;
+    avatarColor: string;
+    iat: number;
+    exp: number;
+    jti: string;
+}
+
+export interface AuthenticatedUser extends JwtPayload {
+    id: string;
+}
+
+export interface AuthenticatedRequest extends Request {
+    user?: AuthenticatedUser;
+    clientIp?: string;
 }
 
 export interface ProjectMember {
@@ -99,58 +110,6 @@ export interface InlineComment {
     createdAt: string;
 }
 
-export interface ThreatRuleMatch {
-    ruleId: string;
-    patternName: string;
-    severity: SecuritySeverity;
-    description: string;
-    line: number;
-    snippet: string;
-}
-
-export interface ThreatScanResult {
-    safe: boolean;
-    threats: string[];
-    riskScore: number;
-    matchedRules: ThreatRuleMatch[];
-}
-
-export interface ExecutionStartedEvent {
-    executionId: string;
-    projectId: string;
-    fileId?: string;
-    fileName: string;
-    language: SupportedLanguage;
-    startedBy: string;
-    userId: string;
-    startedAt: string;
-}
-
-export interface ExecutionResult {
-    id: string;
-    projectId: string;
-    fileId?: string;
-    fileName?: string;
-    language: SupportedLanguage;
-    stdout: string;
-    stderr: string;
-    exitCode: number | null;
-    executionTimeMs: number;
-    durationMs?: number;
-    memoryUsedKb: number;
-    memoryPolicy?: string;
-    timedOut: boolean;
-    sandboxBlocked: boolean;
-    blocked?: boolean;
-    threatsDetected: string[];
-    riskScore: number;
-    threatScan?: ThreatScanResult;
-    executedBy: string;
-    executedAt: string;
-    runtime?: SandboxRuntimeType;
-    isolationLayer?: string;
-}
-
 export interface SecurityEvent {
     id: string;
     projectId: string | null;
@@ -176,12 +135,30 @@ export interface SecurityAlertBanner {
     createdAt: string;
 }
 
-export interface CursorPosition {
-    lineNumber: number;
-    column: number;
+export interface FilenameValidationResult {
+    valid: boolean;
+    sanitizedName: string;
+    language: SupportedLanguage | null;
+    reason?: string;
 }
 
-export interface CollaboratorPresence {
+export interface ThreatRuleMatch {
+    ruleId: string;
+    patternName: string;
+    severity: SecuritySeverity;
+    description: string;
+    line: number;
+    snippet: string;
+}
+
+export interface ThreatScanResult {
+    safe: boolean;
+    threats: string[];
+    riskScore: number;
+    matchedRules: ThreatRuleMatch[];
+}
+
+export interface ActiveCursorPresence {
     userId: string;
     username: string;
     displayName: string;
@@ -214,71 +191,53 @@ export interface ChatMessage {
     createdAt: string;
 }
 
+export interface ExecutionStartedEvent {
+    executionId: string;
+    projectId: string;
+    fileId?: string;
+    fileName: string;
+    language: SupportedLanguage;
+    startedBy: string;
+    userId: string;
+    startedAt: string;
+}
+
+export interface ExecutionResult {
+    id: string;
+    projectId: string;
+    fileId?: string;
+    fileName?: string;
+    language: SupportedLanguage;
+    stdout: string;
+    stderr: string;
+    exitCode: number | null;
+    executionTimeMs: number;
+    durationMs: number;
+    memoryUsedKb: number;
+    memoryPolicy: string;
+    timedOut: boolean;
+    sandboxBlocked: boolean;
+    blocked: boolean;
+    threatsDetected: string[];
+    riskScore: number;
+    threatScan: ThreatScanResult;
+    executedBy: string;
+    executedAt: string;
+    runtime: SandboxRuntimeType;
+    isolationLayer?: string;
+}
+
 export interface RedTeamSimulationResult {
     attackType: RedTeamAttackType;
-    defense?: string;
-    payloadPreview?: string;
-    eventId?: string;
+    blocked: boolean;
+    defense: string;
+    payloadPreview: string;
+    eventId: string;
     attackName: string;
     payloadSummary: string;
-    blocked: boolean;
     httpStatus: number;
     defenseLayer: string;
     securityEvent?: SecurityEvent;
     details: string;
     timestamp: string;
 }
-
-export interface AiSecurityFinding {
-    line: number;
-    severity: SecuritySeverity;
-    title: string;
-    recommendation: string;
-    cweId?: string;
-}
-
-export interface AiSecurityReview {
-    summary: string;
-    overallRiskScore: number;
-    safeToDeploy: boolean;
-    findings: AiSecurityFinding[];
-    hardenedSnippet?: string;
-    analyzedAt: string;
-}
-
-export interface CrdtTelemetryState {
-    syncOpsCount: number;
-    vectorByteSize: number;
-    blockedIntrusionsCount: number;
-    connectedPeersCount: number;
-    wsLatencyMs: number;
-}
-
-// ---------- Backend-only types ----------
-
-export interface JwtPayload {
-    userId: string;
-    username: string;
-    displayName?: string;
-    avatarColor?: string;
-    iat: number;
-    exp: number;
-    jti?: string;
-}
-
-export interface AuthenticatedUser extends JwtPayload {
-    id: string;
-}
-
-export interface AuthenticatedRequest extends Request {
-    user?: AuthenticatedUser;
-}
-
-export interface FilenameValidationResult {
-    valid: boolean;
-    sanitizedName: string;
-    language: SupportedLanguage | null;
-    reason?: string;
-}
-
-export type ActiveCursorPresence = CollaboratorPresence;

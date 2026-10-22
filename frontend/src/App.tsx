@@ -104,6 +104,7 @@ export const App: React.FC = () => {
 
     const activeYDocRef = useRef<Y.Doc | null>(null);
     const toastTimeoutRef = useRef<number | null>(null);
+    const burstTriggerRef = useRef<(() => void) | null>(null);
 
     const triggerSecurityToast = useCallback((alert: SecurityAlertBanner) => {
         setSecurityToast(alert);
@@ -542,6 +543,11 @@ export const App: React.FC = () => {
 
     // TelemetryBar Handlers: Conflict Burst & Red-Team Simulator
     const handleSimulateConflictBurst = () => {
+        if (burstTriggerRef.current) {
+            burstTriggerRef.current();
+            setCrdtOpsCount((prev) => prev + 12);
+            return;
+        }
         if (!activeFile || callerRole === 'VIEWER') return;
         const stamp = new Date().toISOString().slice(11, 23);
         const burstComment =
@@ -920,6 +926,7 @@ export const App: React.FC = () => {
                             onYDocReady={(ydocInstance: Y.Doc) => {
                                 activeYDocRef.current = ydocInstance;
                             }}
+                            onRegisterBurstHandler={(trigger) => { burstTriggerRef.current = trigger; }}
                             onOpenVersionHistory={() =>
                                 setShowVersionHistory(true)
                             }
