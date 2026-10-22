@@ -216,4 +216,4 @@ npm test
 
 ## 9. License
 
-MIT License. Designed and built for the DevCollab Hackathon.
+MIT License. Designed and built for the DevCollab Hackathon
