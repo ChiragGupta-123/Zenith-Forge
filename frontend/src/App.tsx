@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React,{ useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import * as Y from 'yjs';
-import {
+import{
     ShieldCheck,
     ShieldAlert,
     ArrowLeft,
@@ -117,7 +117,7 @@ export const App: React.FC = () => {
     }, []);
 
     // Load all projects for the authenticated persona
-    const loadWorkspaceProjects = useCallback(async () => {
+    const loadWorkspaceProjects = useCallback(async () =>{
         setLoadingProjects(true);
         try {
             const list = await fetchProjects();
@@ -175,7 +175,7 @@ export const App: React.FC = () => {
     }, []);
 
     // Open a project inside the real-time IDE Studio
-    const handleOpenProject = useCallback(async (projectSummary: Project) => {
+    const handleOpenProject = useCallback(async (projectSummary: Project) =>{
         try {
             const details = await fetchProjectDetails(projectSummary.id);
             setActiveProject(details.project);
