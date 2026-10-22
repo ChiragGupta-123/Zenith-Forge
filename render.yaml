@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: devcollab
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_ORIGIN
+        value: "*"
+      - key: NODE_VERSION
+        value: 20.18.0
