@@ -13,6 +13,12 @@ export type SecuritySeverity = 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 export type RedTeamAttackType = 'rce' | 'traversal' | 'rbac';
 
+export type SandboxRuntimeType =
+    | 'piston'
+    | 'local-vm'
+    | 'sandbox-guard'
+    | 'offline-unavailable';
+
 export interface User {
     id: string;
     username: string;
@@ -107,22 +113,39 @@ export interface ThreatScanResult {
     matchedRules: ThreatRuleMatch[];
 }
 
+export interface ExecutionStartedEvent {
+    executionId: string;
+    projectId: string;
+    fileId?: string;
+    fileName: string;
+    language: SupportedLanguage;
+    startedBy: string;
+    userId: string;
+    startedAt: string;
+}
+
 export interface ExecutionResult {
     id: string;
     projectId: string;
     fileId?: string;
+    fileName?: string;
     language: SupportedLanguage;
     stdout: string;
     stderr: string;
     exitCode: number | null;
     executionTimeMs: number;
+    durationMs?: number;
     memoryUsedKb: number;
+    memoryPolicy?: string;
     timedOut: boolean;
     sandboxBlocked: boolean;
+    blocked?: boolean;
     threatsDetected: string[];
     riskScore: number;
+    threatScan?: ThreatScanResult;
     executedBy: string;
     executedAt: string;
+    runtime?: SandboxRuntimeType;
     isolationLayer?: string;
 }
 
@@ -191,6 +214,9 @@ export interface ChatMessage {
 
 export interface RedTeamSimulationResult {
     attackType: RedTeamAttackType;
+    defense?: string;
+    payloadPreview?: string;
+    eventId?: string;
     attackName: string;
     payloadSummary: string;
     blocked: boolean;

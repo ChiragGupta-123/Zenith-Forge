@@ -659,3 +659,50 @@ export async function simulateRedTeamAttack(
         };
     }
 }
+
+/**
+ * Phase 5: Executes code inside the 4-layer hardened sandbox (`POST /api/execute/run`).
+ * If Layer 2 Static Threat Guard blocks the payload with HTTP 403 and returns a structured
+ * `ExecutionResult` (`sandboxBlocked: true`), resolves that result so the console displays
+ * the full red "BLOCKED BY SANDBOX GUARD" threat report.
+ */
+export async function runCode(params: {
+    projectId: string;
+    fileId?: string;
+    code?: string;
+    language?: SupportedLanguage;
+    stdin?: string;
+}): Promise<ExecutionResult> {
+    try {
+        const response = await apiClient.post<ExecutionResult>(
+            '/execute/run',
+            params
+        );
+        return response.data;
+    } catch (err) {
+        if (
+            axios.isAxiosError(err) &&
+            err.response?.status === 403 &&
+            err.response?.data &&
+            typeof err.response.data === 'object' &&
+            ('sandboxBlocked' in err.response.data ||
+                'threatScan' in err.response.data)
+        ) {
+            return err.response.data as ExecutionResult;
+        }
+        throw err;
+    }
+}
+
+/**
+ * Phase 5: Fetches the latest 100 security telemetry events (`GET /api/execute/security-logs/:projectId`).
+ */
+export async function fetchSecurityLogs(
+    projectId: string
+): Promise<SecurityEvent[]> {
+    const response = await apiClient.get<{
+        logs?: SecurityEvent[];
+        events?: SecurityEvent[];
+    }>(`/execute/security-logs/${encodeURIComponent(projectId)}`);
+    return response.data.logs || response.data.events || [];
+}
