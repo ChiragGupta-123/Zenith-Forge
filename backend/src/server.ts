@@ -26,6 +26,32 @@ const ALLOWED_ORIGINS = (
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+const PUBLIC_DOMAIN = process.env.PUBLIC_DOMAIN?.trim() || '';
+const extraConnectHosts = PUBLIC_DOMAIN
+    ? `https://${PUBLIC_DOMAIN} wss://${PUBLIC_DOMAIN} ${PUBLIC_DOMAIN}`
+    : '';
+
+const dynamicCspConnectSrc = Array.from(
+    new Set([
+        "'self'",
+        'http://localhost:*',
+        'http://127.0.0.1:*',
+        'ws://localhost:*',
+        'ws://127.0.0.1:*',
+        'wss://localhost:*',
+        ...(extraConnectHosts ? extraConnectHosts.split(' ') : []),
+        ...ALLOWED_ORIGINS.flatMap((origin) => {
+            try {
+                const u = new URL(origin);
+                const wsProto = u.protocol === 'https:' ? 'wss:' : 'ws:';
+                return [origin, `${wsProto}//${u.host}`];
+            } catch {
+                return [origin];
+            }
+        }),
+    ])
+).join(' ');
+
 export const app = express();
 export const httpServer = http.createServer(app);
 
@@ -36,7 +62,7 @@ app.use((_req: Request, res: Response, next: NextFunction): void => {
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader(
         'Content-Security-Policy',
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* wss://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src ${dynamicCspConnectSrc}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`
     );
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader(

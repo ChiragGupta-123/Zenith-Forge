@@ -1,0 +1,60 @@
+name: DevCollab Production CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ----------------------------------------------------------------------
+  # Job 1: Verification & Security Tests
+  # ----------------------------------------------------------------------
+  test:
+    name: Verify Integration & Security Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Backend & Run Integration Tests (14 Checks)
+        run: |
+          cd backend
+          npm ci
+          npm test
+
+      - name: Verify Frontend Production Build
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+  # ----------------------------------------------------------------------
+  # Job 2: Automated Production Deployment (Only runs on push to main)
+  # ----------------------------------------------------------------------
+  deploy:
+    name: Deploy to Production Host
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SERVER_IP }}
+          username: ${{ secrets.PROD_SERVER_USER || 'deploy' }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /opt/devcollab
+            git pull origin main
+            docker compose build
+            docker compose up -d --remove-orphans
+            docker system prune -f

@@ -1,0 +1,89 @@
+services:
+  # ----------------------------------------------------------------
+  # 1. Edge Reverse Proxy & TLS Ingress
+  # ----------------------------------------------------------------
+  edge-proxy:
+    image: nginx:alpine
+    container_name: devcollab-edge-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx-edge.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/proxy-routes.inc:/etc/nginx/conf.d/proxy-routes.inc:ro
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - devcollab-net
+
+  # ----------------------------------------------------------------
+  # 2. Frontend React / Vite Production SPA
+  # ----------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: devcollab-frontend
+    restart: unless-stopped
+    networks:
+      - devcollab-net
+
+  # ----------------------------------------------------------------
+  # 3. Backend Hardened Express & Socket.IO CRDT Server
+  # ----------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: devcollab-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost}
+      - PUBLIC_DOMAIN=${PUBLIC_DOMAIN:-}
+      - DEVCOLLAB_DB_PATH=/data/sqlite/devcollab.sqlite
+      - PISTON_URL=http://piston:2000/api/v2/execute
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    volumes:
+      - sqlite-data:/data/sqlite
+    depends_on:
+      - piston
+    networks:
+      - devcollab-net
+
+  # ----------------------------------------------------------------
+  # 4. Isolated Sandbox Code Execution Runner (Piston)
+  # ----------------------------------------------------------------
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    container_name: devcollab-piston
+    restart: unless-stopped
+    privileged: false
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+    pids_limit: 100
+    tmpfs:
+      - /tmp:exec,mode=1777
+    networks:
+      - devcollab-net
+
+volumes:
+  sqlite-data:
+    driver: local
+  certbot-conf:
+    driver: local
+  certbot-www:
+    driver: local
+
+networks:
+  devcollab-net:
+    driver: bridge

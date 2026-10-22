@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.log
+.git
+.DS_Store
+test_integration.js

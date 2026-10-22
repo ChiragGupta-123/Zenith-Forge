@@ -1,0 +1,4 @@
+# Default Docker Compose points to production configuration
+# Run: docker compose up -d --build
+include:
+  - docker-compose.prod.yml

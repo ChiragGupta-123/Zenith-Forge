@@ -8,6 +8,7 @@
     "scripts": {
         "dev": "tsx watch src/server.ts",
         "start": "tsx src/server.ts",
+        "start:prod": "node dist/server.js",
         "build": "tsc",
         "typecheck": "tsc --noEmit",
         "test": "npm run build && node test_integration.js"
